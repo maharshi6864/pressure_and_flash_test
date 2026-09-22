@@ -1,0 +1,16 @@
+/* Custom styles overriding Bootstrap if necessary */
+
+/* The sidebar is handled via inline styles in base.html */
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

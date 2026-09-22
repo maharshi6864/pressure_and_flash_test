@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+websockets
+opencv-python
+numpy
+pydantic
+sqlalchemy
+requests

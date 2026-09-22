@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-column h-100">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 d-flex align-items-center gap-2 text-dark">
+                <span class="material-symbols-outlined text-primary fs-2">manage_accounts</span> User Management
+            </h3>
+            <p class="text-muted mb-0 small">Create, edit, and manage user accounts and system access.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border px-3 py-2" id="userCountBadge">0 Users</span>
+            <button class="btn btn-primary d-inline-flex align-items-center gap-1 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <span class="material-symbols-outlined fs-5">person_add</span> Add User
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card border-0 shadow-sm flex-grow-1 d-flex flex-column mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text bg-light border-end-0 text-muted">
+                    <span class="material-symbols-outlined fs-5">search</span>
+                </span>
+                <input type="text" class="form-control bg-light border-start-0 ps-0" id="userSearchInput" placeholder="Search by name or username...">
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" id="refreshUsersBtn">
+                    <span class="material-symbols-outlined fs-5">refresh</span> Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0 flex-grow-1 overflow-auto">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="usersTable">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4" style="width: 5%;">#</th>
+                            <th style="width: 22%;">Name</th>
+                            <th style="width: 18%;">Username</th>
+                            <th style="width: 20%;">Password (Dev Open)</th>
+                            <th style="width: 12%;">Role</th>
+                            <th style="width: 13%;">Created At</th>
+                            <th class="text-end pe-4" style="width: 10%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTbody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                <div class="mt-2 small">Loading users...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="addUserForm" class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2" id="addUserModalLabel">
+                    <span class="material-symbols-outlined">person_add</span> Add New User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Full Name</label>
+                    <input type="text" class="form-control" id="add_name" placeholder="e.g. Rajesh Sharma">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Username *</label>
+                    <input type="text" class="form-control" id="add_username" placeholder="e.g. rajesh" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Password * (Open Text)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="add_password" placeholder="e.g. password123" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="generateRandomPassword('add_password')">Generate</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Role *</label>
+                    <select class="form-select" id="add_role" required>
+                        <option value="user" selected>User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div id="addUserError" class="alert alert-danger py-2 small d-none"></div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light">
+                <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary fw-semibold d-inline-flex align-items-center gap-1" id="saveAddUserBtn">
+                    <span class="material-symbols-outlined fs-5">save</span> Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT USER MODAL -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="editUserForm" class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2" id="editUserModalLabel">
+                    <span class="material-symbols-outlined">edit</span> Edit User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="edit_user_id">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Full Name</label>
+                    <input type="text" class="form-control" id="edit_name" placeholder="e.g. Rajesh Sharma">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Username *</label>
+                    <input type="text" class="form-control" id="edit_username" placeholder="e.g. rajesh" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Password * (Open Text)</label>
+                    <input type="text" class="form-control font-monospace" id="edit_password" placeholder="Change password" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Role *</label>
+                    <select class="form-select" id="edit_role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div id="editUserError" class="alert alert-danger py-2 small d-none"></div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light">
+                <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary fw-semibold d-inline-flex align-items-center gap-1" id="saveEditUserBtn">
+                    <span class="material-symbols-outlined fs-5">save</span> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE USER MODAL -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="text-danger mb-3">
+                    <span class="material-symbols-outlined" style="font-size: 48px;">warning</span>
+                </div>
+                <h5 class="fw-bold mb-2">Delete User?</h5>
+                <p class="text-muted small mb-3">Are you sure you want to delete user <strong id="delete_username_text" class="text-dark"></strong>? This action cannot be undone.</p>
+                <input type="hidden" id="delete_user_id">
+                <div id="deleteUserError" class="alert alert-danger py-2 small d-none"></div>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm px-3 fw-semibold" id="confirmDeleteUserBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allUsers = [];
+
+    function generateRandomPassword(elementId) {
+        const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+        let res = "";
+        for (let i = 0; i < 8; i++) {
+            res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById(elementId).value = res;
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const token = localStorage.getItem("token");
+        const role = localStorage.getItem("role");
+
+        if (!token) {
+            window.location.href = "/login";
+            return;
+        }
+
+        if (role !== "admin") {
+            window.location.href = "/manage-proofs";
+            return;
+        }
+
+        const headers = {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        };
+
+        async function loadUsers() {
+            try {
+                const res = await fetch("/api/users", { headers });
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        window.location.href = "/login";
+                        return;
+                    }
+                    throw new Error(`Failed to load users (HTTP ${res.status})`);
+                }
+                allUsers = await res.json();
+                renderUsers(allUsers);
+            } catch (err) {
+                console.error(err);
+                document.getElementById("usersTbody").innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-danger">
+                            <span class="material-symbols-outlined fs-2">error</span>
+                            <div class="mt-1">${err.message}</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById("usersTbody");
+            document.getElementById("userCountBadge").innerText = `${users.length} Users`;
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <span class="material-symbols-outlined fs-1 text-secondary opacity-50">group_off</span>
+                            <div class="mt-2">No users found.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = users.map((u, idx) => {
+                const initial = (u.name ? u.name.charAt(0) : (u.username ? u.username.charAt(0) : 'U')).toUpperCase();
+                const roleBadge = u.role === 'admin' 
+                    ? '<span class="badge bg-primary px-2 py-1"><span class="material-symbols-outlined fs-6 align-middle">shield</span> Admin</span>' 
+                    : '<span class="badge bg-secondary px-2 py-1">User</span>';
+                
+                const createdStr = u.created_at ? new Date(u.created_at).toLocaleDateString() : '-';
+
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold text-muted">${idx + 1}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-light border text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 34px; height: 34px; font-size: 13px;">
+                                    ${initial}
+                                </div>
+                                <div class="fw-semibold text-dark">${u.name || '<span class="text-muted italic">Not set</span>'}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-monospace text-secondary fw-semibold">@${u.username}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border font-monospace px-2 py-1" style="font-size: 13px;">${u.password || '-'}</span>
+                        </td>
+                        <td>${roleBadge}</td>
+                        <td class="small text-muted">${createdStr}</td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary edit-user-btn" 
+                                    data-id="${u.id}" data-name="${u.name || ''}" data-username="${u.username}" 
+                                    data-password="${u.password || ''}" data-role="${u.role}">
+                                    <span class="material-symbols-outlined fs-6">edit</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-user-btn" 
+                                    data-id="${u.id}" data-username="${u.username}">
+                                    <span class="material-symbols-outlined fs-6">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            attachTableListeners();
+        }
+
+        function attachTableListeners() {
+            // Edit User button
+            document.querySelectorAll(".edit-user-btn").forEach(btn => {
+                btn.onclick = () => {
+                    const id = btn.getAttribute("data-id");
+                    const name = btn.getAttribute("data-name");
+                    const username = btn.getAttribute("data-username");
+                    const password = btn.getAttribute("data-password");
+                    const role = btn.getAttribute("data-role");
+
+                    document.getElementById("edit_user_id").value = id;
+                    document.getElementById("edit_name").value = name;
+                    document.getElementById("edit_username").value = username;
+                    document.getElementById("edit_password").value = password;
+                    document.getElementById("edit_role").value = role || "user";
+                    document.getElementById("editUserError").classList.add("d-none");
+
+                    new bootstrap.Modal(document.getElementById("editUserModal")).show();
+                };
+            });
+
+            // Delete User button
+            document.querySelectorAll(".delete-user-btn").forEach(btn => {
+                btn.onclick = () => {
+                    const id = btn.getAttribute("data-id");
+                    const username = btn.getAttribute("data-username");
+
+                    document.getElementById("delete_user_id").value = id;
+                    document.getElementById("delete_username_text").innerText = `@${username}`;
+                    document.getElementById("deleteUserError").classList.add("d-none");
+
+                    new bootstrap.Modal(document.getElementById("deleteUserModal")).show();
+                };
+            });
+        }
+
+        // Search Filter
+        document.getElementById("userSearchInput").addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                renderUsers(allUsers);
+                return;
+            }
+            const filtered = allUsers.filter(u => 
+                (u.name && u.name.toLowerCase().includes(query)) ||
+                (u.username && u.username.toLowerCase().includes(query)) ||
+                (u.role && u.role.toLowerCase().includes(query))
+            );
+            renderUsers(filtered);
+        });
+
+        // Refresh Button
+        document.getElementById("refreshUsersBtn").onclick = loadUsers;
+
+        // Add User Form Submit
+        document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const errDiv = document.getElementById("addUserError");
+            errDiv.classList.add("d-none");
+
+            const payload = {
+                name: document.getElementById("add_name").value.trim() || null,
+                username: document.getElementById("add_username").value.trim(),
+                password: document.getElementById("add_password").value,
+                role: document.getElementById("add_role").value
+            };
+
+            try {
+                const res = await fetch("/api/users", {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById("addUserModal")).hide();
+                    document.getElementById("addUserForm").reset();
+                    await loadUsers();
+                } else {
+                    const data = await res.json();
+                    errDiv.innerText = data.detail || "Failed to create user.";
+                    errDiv.classList.remove("d-none");
+                }
+            } catch (err) {
+                errDiv.innerText = "Network error occurred.";
+                errDiv.classList.remove("d-none");
+            }
+        });
+
+        // Edit User Form Submit
+        document.getElementById("editUserForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const errDiv = document.getElementById("editUserError");
+            errDiv.classList.add("d-none");
+            const userId = document.getElementById("edit_user_id").value;
+
+            const payload = {
+                name: document.getElementById("edit_name").value.trim() || null,
+                username: document.getElementById("edit_username").value.trim(),
+                password: document.getElementById("edit_password").value,
+                role: document.getElementById("edit_role").value
+            };
+
+            try {
+                const res = await fetch(`/api/users/${userId}`, {
+                    method: "PUT",
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
+                    await loadUsers();
+                } else {
+                    const data = await res.json();
+                    errDiv.innerText = data.detail || "Failed to update user.";
+                    errDiv.classList.remove("d-none");
+                }
+            } catch (err) {
+                errDiv.innerText = "Network error occurred.";
+                errDiv.classList.remove("d-none");
+            }
+        });
+
+        // Confirm Delete User
+        document.getElementById("confirmDeleteUserBtn").onclick = async () => {
+            const errDiv = document.getElementById("deleteUserError");
+            errDiv.classList.add("d-none");
+            const userId = document.getElementById("delete_user_id").value;
+
+            try {
+                const res = await fetch(`/api/users/${userId}`, {
+                    method: "DELETE",
+                    headers
+                });
+
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById("deleteUserModal")).hide();
+                    await loadUsers();
+                } else {
+                    const data = await res.json();
+                    errDiv.innerText = data.detail || "Failed to delete user.";
+                    errDiv.classList.remove("d-none");
+                }
+            } catch (err) {
+                errDiv.innerText = "Network error occurred.";
+                errDiv.classList.remove("d-none");
+            }
+        };
+
+        // Initial Load
+        await loadUsers();
+    });
+</script>
+{% endblock %}

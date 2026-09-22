@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash Test App</title>
+    <link rel="icon" type="image/png" href="/static/images/favicon-32x32_ver-1.1.png">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/material-symbols.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            /* background-color: #f8f9fa; */
+            /* Light background */
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #ffffff;
+            /* White sidebar */
+            border-right: 1px solid #dee2e6;
+            padding: 2rem 1.5rem;
+            z-index: 1000;
+        }
+
+        .video-feed {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: contain;
+            background-color: #000;
+            border-radius: 0.5rem;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
+    </style>
+</head>
+
+<body class="d-flex min-vh-100 m-0">
+    <!-- Sidebar -->
+    <!-- <aside class="sidebar d-flex flex-column h-100 position-fixed shadow-sm">
+        <h3 class="text-primary text-center fw-bold mb-0 d-flex align-items-center justify-content-center gap-2">
+            <span class="material-symbols-outlined fs-2 ">bolt</span>
+            <span>FlashTest</span>
+        </h3>
+        <hr>
+        <ul class="nav nav-pills flex-column gap-2 mb-auto">
+            <li class="nav-item">
+                <a href="/"
+                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/' %}active{% else %}text-dark{% endif %}">
+                    <span class="material-symbols-outlined">dashboard</span> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/manage-proofs"
+                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/manage-proofs' %}active{% else %}text-dark{% endif %}">
+                    <span class="material-symbols-outlined">inventory_2</span> Manage Proofs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/test"
+                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/test' %}active{% else %}text-dark{% endif %}">
+                    <span class="material-symbols-outlined">speed</span>Test
+                </a>
+            </li>
+        </ul>
+        <div class="mt-auto card bg-light border-secondary-subtle">
+            <div class="card-body p-2 d-flex align-items-center gap-2" id="cameraStatus">
+                <span class="status-indicator spinner-grow spinner-grow-sm text-secondary" role="status"></span>
+                <small class="status-text text-secondary fw-semibold">Checking...</small>
+            </div>
+        </div>
+    </aside> -->
+
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1 p-4" style="margin-left:  0px;">
+        <div class="container-fluid h-100">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

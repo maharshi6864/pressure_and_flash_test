@@ -1,0 +1,13 @@
+*.zip
+venv
+*.jpg
+*.jpeg
+*.mp4
+__pycache__
+.idea
+.vscode
+saved_images
+test_videos
+uploads
+*.db
+

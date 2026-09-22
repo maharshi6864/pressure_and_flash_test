@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-9">
+        <div class="card border-0 h-100">
+            <div
+                class="card-body p-0 d-flex align-items-center justify-content-center overflow-hidden ratio ratio-16x9 rounded">
+                <img src="/video_feed/test" alt="Test Feed" class="object-fit-contain w-100 h-100">
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="card bg-light my-3">
+                        <div class="card-header">
+                            Current Values
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="">
+                                        <div class="text-secondary small text-uppercase fw-bold mb-1">Current X</div>
+                                        <div id="val-current" class="fs-5 fw-bold text-success lh-1 mb-1">0.0 mm</div>
+                                        <div id="val-current-inch" class="fs-6 text-dark lh-1 mb-1 fw-semibold">0 inch
+                                        </div>
+                                        <div id="val-current-press" class="small text-secondary font-monospace">PSI:
+                                            0.000 |
+                                            MPA:
+                                            0.000</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="">
+                                        <div class="text-secondary small text-uppercase fw-bold mb-1">Max +ve</div>
+                                        <div id="val-max-pos" class="fs-5 fw-bold text-primary lh-1 mb-1">0.0 mm</div>
+                                        <div id="val-max-pos-inch" class="fs-6 text-dark lh-1 mb-1 fw-semibold">0 inch
+                                        </div>
+                                        <div id="val-max-pos-press" class="small text-secondary font-monospace">PSI:
+                                            0.000 |
+                                            MPA:
+                                            0.000</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card bg-light my-3">
+                        <div class="card-header">
+                            Recorded Values
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="">
+                                        <div class="text-secondary small text-uppercase fw-bold mb-1">Max +ve</div>
+                                        <div id="rec-val-max-pos" class="fs-4 fw-bold text-primary lh-1 mb-1">0.0 mm
+                                        </div>
+                                        <div id="rec-val-max-pos-inch" class="fs-6 text-dark lh-1 mb-1 fw-semibold">0
+                                            inch
+                                        </div>
+                                        <div id="rec-val-max-pos-press" class="small text-secondary font-monospace">PSI:
+                                            0.000 |
+                                            MPA:
+                                            0.000</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 h-100 p-0">
+            <div class="card-body p-0 d-flex flex-column" style="max-height: 95vh; overflow-y: auto;">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h4 class="card-title fw-bold mb-0 text-primary d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">speed</span> Pressure Test
+                    </h4>
+                    <img src="/static/images/c4i4-logo-1.png" alt="Logo" style="height: 34px; object-fit: contain;">
+                </div>
+
+                <div class="mb-3 p-3 bg-light rounded border border-secondary-subtle">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="text-secondary small fw-bold text-uppercase mb-0">Proof & Test Selection</h6>
+                        <button type="button" id="refreshProofsBtn" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" title="Refresh Proofs">
+                            <span class="material-symbols-outlined" style="font-size: 1.1rem;">refresh</span>
+                            <span class="small">Refresh</span>
+                        </button>
+                    </div>
+                    <div class="mb-2">
+                        <label for="proofSelect" class="form-label small mb-1">Select Proof (Lot No)</label>
+                        <select id="proofSelect" class="form-select form-select-sm">
+                            <option value="">-- Select Proof --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label for="testSelect" class="form-label small mb-1">Select Test</label>
+                        <select id="testSelect" class="form-select form-select-sm" disabled>
+                            <option value="">-- Select Test --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- <div class="mb-3 p-3 bg-light rounded border border-secondary-subtle">
+                    <label for="markerSize" class="form-label text-secondary small fw-bold text-uppercase mb-1">ArUco
+                        Marker Size (meters)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="markerSize" class="form-control" step="0.01" value="{{ marker_size }}"
+                            min="0.01">
+                        <button id="updateSizeBtn" class="btn btn-outline-primary d-flex align-items-center gap-1">
+                            <span class="material-symbols-outlined" style="font-size: 1rem;">done</span> Update
+                        </button>
+                    </div>
+                </div> -->
+
+                <div class="mb-3">
+                    <button id="setOriginBtn"
+                        class="btn btn-primary w-100 fs-6 py-2 d-flex justify-content-center align-items-center gap-2">
+                        <span class="material-symbols-outlined">my_location</span> Set Origin (Current X)
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <button id="resetBtn"
+                        class="btn btn-danger w-100 fs-6 py-2 d-flex justify-content-center align-items-center gap-2">
+                        <span class="material-symbols-outlined">delete</span> Reset Recorded Values
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <button id="saveMeasurementBtn"
+                        class="btn btn-success w-100 fs-6 py-2 d-flex justify-content-center align-items-center gap-2"
+                        disabled>
+                        <span class="material-symbols-outlined">save</span> Save Results And Next Test
+                    </button>
+                </div>
+
+                <div id="measureMessage" class="mt-3 text-center small fw-bold"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/test.js"></script>
+{% endblock %}

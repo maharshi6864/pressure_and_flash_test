@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+            <span class="material-symbols-outlined text-primary fs-2">dashboard</span>
+            <span>Proof Operations Dashboard</span>
+        </h2>
+        <p class="text-muted small mb-0">Live monitoring of proof testing slips, flash captures, and pressure measurements.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary d-inline-flex align-items-center gap-1" id="triggerSyncBtn">
+            <span class="material-symbols-outlined fs-5">sync</span> Sync Nodes Now
+        </button>
+        <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-1" id="refreshDashboardBtn">
+            <span class="material-symbols-outlined fs-5">refresh</span> Refresh
+        </button>
+        <a href="/manage-proofs" class="btn btn-primary d-inline-flex align-items-center gap-2 fw-semibold">
+            <span class="material-symbols-outlined fs-5">add_circle</span> Manage Proofs
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <!-- Total Proofs Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100 bg-primary text-white position-relative overflow-hidden">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-white-50 small fw-bold text-uppercase tracking-wide">Total Proofs</div>
+                    <div class="display-6 fw-bold my-1" id="totalProofsStat">{{ total_proofs }}</div>
+                    <small class="text-white-50 d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">inventory_2</span> Registered Slips
+                    </small>
+                </div>
+                <div class="bg-white bg-opacity-25 p-3 rounded-circle d-flex">
+                    <span class="material-symbols-outlined fs-1">inventory_2</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Sync Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100 bg-warning text-dark position-relative overflow-hidden">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-dark opacity-75 small fw-bold text-uppercase tracking-wide">Flash Tests</div>
+                    <div class="display-6 fw-bold my-1" id="flashTestsStat">-</div>
+                    <small class="text-dark opacity-75 d-flex align-items-center gap-1" id="flashSyncStat">
+                        <span class="material-symbols-outlined fs-6">bolt</span> <span id="flashDetectedCount">-</span> Detected
+                    </small>
+                </div>
+                <div class="bg-white bg-opacity-50 p-3 rounded-circle d-flex">
+                    <span class="material-symbols-outlined fs-1 text-dark">bolt</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pressure Sync Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100 bg-info text-white position-relative overflow-hidden">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-white-50 small fw-bold text-uppercase tracking-wide">Pressure Tests</div>
+                    <div class="display-6 fw-bold my-1" id="pressureTestsStat">-</div>
+                    <small class="text-white-50 d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">speed</span> Avg <span id="avgMpaStat" class="fw-bold ms-1">-</span> MPA
+                    </small>
+                </div>
+                <div class="bg-white bg-opacity-25 p-3 rounded-circle d-flex">
+                    <span class="material-symbols-outlined fs-1">speed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100 bg-success text-white position-relative overflow-hidden">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-white-50 small fw-bold text-uppercase tracking-wide">Synced Slips</div>
+                    <div class="display-6 fw-bold my-1" id="syncedProofCount">-</div>
+                    <small class="text-white-50 d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">sync</span> Main System Active
+                    </small>
+                </div>
+                <div class="bg-white bg-opacity-25 p-3 rounded-circle d-flex">
+                    <span class="material-symbols-outlined fs-1">dns</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Middle Section: Recent Proofs & Analytics -->
+<div class="row g-4 mb-4">
+    <!-- Recent Proofs Table -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">schedule</span>
+                    <h5 class="mb-0 fw-bold text-secondary">Recent Proof Activity</h5>
+                </div>
+                <a href="/manage-proofs" class="text-decoration-none small fw-semibold d-flex align-items-center gap-1">
+                    View All <span class="material-symbols-outlined fs-6">chevron_right</span>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-3">Lot No</th>
+                                <th>Date</th>
+                                <th>Store</th>
+                                <th>Flash</th>
+                                <th>Pressure</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentProofsTbody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Status Summary -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold text-secondary d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">hub</span> Connected Nodes
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success p-1 rounded-circle"> </span>
+                            <div>
+                                <div class="fw-semibold small">Main Server</div>
+                                <div class="text-muted" style="font-size: 11px;">Central Coordinator</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">Online</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning p-1 rounded-circle"> </span>
+                            <div>
+                                <div class="fw-semibold small">Flash Test Server</div>
+                                <div class="text-muted" style="font-size: 11px;">Image & Flash Ingestion</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning">Ready</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-info p-1 rounded-circle"> </span>
+                            <div>
+                                <div class="fw-semibold small">Pressure Test Server</div>
+                                <div class="text-muted" style="font-size: 11px;">MPA / PSI Measurements</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-info bg-opacity-10 text-info border border-info">Ready</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold text-secondary d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">tune</span> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                <a href="/manage-proofs" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 fw-semibold py-2">
+                    <span class="material-symbols-outlined">add</span> Create New Proof Slip
+                </a>
+                <a href="/manage-proofs" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2 fw-semibold py-2">
+                    <span class="material-symbols-outlined">table_view</span> View All Proofs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/login";
+            return;
+        }
+
+        const username = localStorage.getItem("username");
+        if (username) {
+            document.getElementById("userProfile").classList.remove("d-none");
+            document.getElementById("usernameDisplay").innerText = username;
+        }
+
+        document.getElementById("logoutBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            window.location.href = "/login";
+        });
+
+        document.getElementById("refreshDashboardBtn").addEventListener("click", () => {
+            loadDashboardData();
+        });
+
+        const syncBtn = document.getElementById("triggerSyncBtn");
+        if (syncBtn) {
+            syncBtn.addEventListener("click", async () => {
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Syncing...';
+                try {
+                    const res = await fetch("/api/proofs/sync/trigger", {
+                        method: "POST",
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        await loadDashboardData();
+                    }
+                } catch (e) {
+                    console.error("Sync error:", e);
+                } finally {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = '<span class="material-symbols-outlined fs-5">sync</span> Sync Nodes Now';
+                }
+            });
+        }
+
+        async function loadDashboardData() {
+            try {
+                const res = await fetch("/api/proofs/dashboard/stats", {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error("Failed to fetch dashboard stats");
+                const data = await res.json();
+
+                // Update Stats
+                document.getElementById("totalProofsStat").innerText = data.total_proofs || 0;
+                document.getElementById("flashTestsStat").innerText = data.total_flash_tests || 0;
+                document.getElementById("flashDetectedCount").innerText = data.flash_detected_count || 0;
+                document.getElementById("pressureTestsStat").innerText = data.total_pressure_tests || 0;
+                document.getElementById("avgMpaStat").innerText = data.avg_pressure_mpa ? data.avg_pressure_mpa.toFixed(2) : '0.00';
+                document.getElementById("syncedProofCount").innerText = `${data.synced_flash_count || 0} / ${data.total_proofs || 0}`;
+
+                // Render Recent Proofs
+                const tbody = document.getElementById("recentProofsTbody");
+                if (data.recent_proofs && data.recent_proofs.length > 0) {
+                    tbody.innerHTML = data.recent_proofs.map(p => `
+                        <tr>
+                            <td class="ps-3">
+                                <a href="/proof/${p.id}" class="fw-bold text-decoration-none text-primary">
+                                    ${p.lot_no || `Proof #${p.id}`}
+                                </a>
+                            </td>
+                            <td class="small text-muted">${p.date || '-'}</td>
+                            <td class="small">${p.store || '-'}</td>
+                            <td>
+                                <span class="badge ${p.synced_with_flash ? 'bg-success' : 'bg-secondary'} bg-opacity-75">
+                                    ${p.synced_with_flash ? 'Synced' : 'Pending'}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge ${p.synced_with_pressure ? 'bg-info' : 'bg-secondary'} bg-opacity-75">
+                                    ${p.synced_with_pressure ? 'Synced' : 'Pending'}
+                                </span>
+                            </td>
+                            <td class="text-end pe-3">
+                                <a href="/proof/${p.id}" class="btn btn-sm btn-outline-primary py-0 px-2 d-inline-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span> View
+                                </a>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No proof slips registered yet.</td></tr>';
+                }
+
+            } catch (err) {
+                console.error("Dashboard error:", err);
+            }
+        }
+
+        loadDashboardData();
+    });
+</script>
+{% endblock %}
