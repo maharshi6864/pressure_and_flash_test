@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import os
+import shutil
 from core.database import get_db
 from models.db_models import Proof, FlashTest, PressureTest, User
 from models.schemas import (
@@ -12,7 +14,7 @@ from models.schemas import (
     PressureTestUpdate,
     PressureTestResponse,
 )
-from core.security import get_current_user
+from core.security import get_current_user, get_current_admin
 from services.proof_service import proof_service
 from services.sync_service import sync_service
 from core.lookup_table import get_mpa_from_inch, get_inch_from_mpa
@@ -133,14 +135,34 @@ async def update_proof(
 async def delete_proof(
     proof_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_admin: User = Depends(get_current_admin)
 ):
     proof = db.query(Proof).filter(Proof.id == proof_id).first()
     if not proof:
         raise HTTPException(status_code=404, detail="Proof not found")
+
+    lot_no = proof.lot_no
+
+    # 1. Inform child nodes to delete tests and proof
+    node_results = await sync_service.delete_proof_from_nodes(proof_id, lot_no=lot_no)
+
+    # 2. Clean up any physical uploaded images for this proof
+    proof_upload_dir = os.path.join("uploads", "flash_images", f"proof_{proof_id}")
+    if os.path.exists(proof_upload_dir):
+        try:
+            shutil.rmtree(proof_upload_dir, ignore_errors=True)
+        except Exception as e:
+            print(f"[CLEANUP] Error removing proof image folder {proof_upload_dir}: {e}")
+
+    # 3. Delete proof from database (cascades to flash_tests and pressure_tests)
     db.delete(proof)
     db.commit()
-    return {"status": "success", "message": f"Proof {proof_id} deleted successfully"}
+
+    return {
+        "status": "success",
+        "message": f"Proof {proof_id} (Lot {lot_no}) and all associated test records were deleted successfully.",
+        "nodes_notified": node_results
+    }
 
 @router.put("/{proof_id}/flash-tests/{test_id}", response_model=FlashTestResponse)
 async def update_flash_test(

@@ -95,3 +95,9 @@ class FlashTestSyncSchema(BaseModel):
 class SyncFlashRequest(BaseModel):
     proof: ProofSyncSchema
     flash: List[FlashTestSyncSchema] = []
+
+
+class DeleteProofRequest(BaseModel):
+    proof_id: Optional[int] = None
+    lot_no: Optional[str] = None
+

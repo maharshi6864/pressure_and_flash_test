@@ -305,3 +305,57 @@ async def save_flash_test_proof_results(
         "saved_count": saved_count,
         "message": f"Successfully updated all flash tests for proof {proof_id}"
     }
+
+@router.delete("/proof/{proof_id}")
+async def sync_delete_proof_by_id(
+    proof_id: int,
+    token: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    verify_sync_token(token)
+    proof = db.query(Proof).filter(Proof.id == proof_id).first()
+    if not proof:
+        return {"status": "not_found", "message": f"Proof {proof_id} not found or already deleted"}
+    
+    # Clean up uploads
+    proof_upload_dir = os.path.join("uploads", "flash_images", f"proof_{proof_id}")
+    if os.path.exists(proof_upload_dir):
+        try:
+            shutil.rmtree(proof_upload_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+    db.delete(proof)
+    db.commit()
+    return {"status": "success", "message": f"Proof {proof_id} and tests deleted successfully via sync"}
+
+@router.post("/delete_proof")
+async def sync_delete_proof_post(
+    data: dict,
+    token: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    verify_sync_token(token)
+    proof_id = data.get("proof_id")
+    lot_no = data.get("lot_no")
+
+    proof = None
+    if proof_id:
+        proof = db.query(Proof).filter(Proof.id == proof_id).first()
+    if not proof and lot_no:
+        proof = db.query(Proof).filter(Proof.lot_no == lot_no).first()
+
+    if not proof:
+        return {"status": "not_found", "message": f"Proof not found or already deleted"}
+
+    effective_id = proof.id
+    proof_upload_dir = os.path.join("uploads", "flash_images", f"proof_{effective_id}")
+    if os.path.exists(proof_upload_dir):
+        try:
+            shutil.rmtree(proof_upload_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+    db.delete(proof)
+    db.commit()
+    return {"status": "success", "message": f"Proof {effective_id} and tests deleted successfully via sync"}

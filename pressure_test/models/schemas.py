@@ -101,3 +101,7 @@ class ProofSyncSchema(BaseModel):
 class SyncPressureRequest(BaseModel):
     proof: ProofSyncSchema
     pressure: List[PressureTestSyncSchema] = []
+
+class DeleteProofRequest(BaseModel):
+    proof_id: Optional[int] = None
+    lot_no: Optional[str] = None

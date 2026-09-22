@@ -43,43 +43,8 @@
 </head>
 
 <body class="d-flex min-vh-100 m-0">
-    <!-- Sidebar -->
-    <!-- <aside class="sidebar d-flex flex-column h-100 position-fixed shadow-sm">
-        <h3 class="text-primary text-center fw-bold mb-0 d-flex align-items-center justify-content-center gap-2">
-            <span class="material-symbols-outlined fs-2 ">bolt</span>
-            <span>FlashTest</span>
-        </h3>
-        <hr>
-        <ul class="nav nav-pills flex-column gap-2 mb-auto">
-            <li class="nav-item">
-                <a href="/"
-                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/' %}active{% else %}text-dark{% endif %}">
-                    <span class="material-symbols-outlined">dashboard</span> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/manage-proofs"
-                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/manage-proofs' %}active{% else %}text-dark{% endif %}">
-                    <span class="material-symbols-outlined">inventory_2</span> Manage Proofs
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/test"
-                    class="nav-link px-3 d-flex align-items-center gap-2 {% if request.url.path == '/test' %}active{% else %}text-dark{% endif %}">
-                    <span class="material-symbols-outlined">speed</span>Test
-                </a>
-            </li>
-        </ul>
-        <div class="mt-auto card bg-light border-secondary-subtle">
-            <div class="card-body p-2 d-flex align-items-center gap-2" id="cameraStatus">
-                <span class="status-indicator spinner-grow spinner-grow-sm text-secondary" role="status"></span>
-                <small class="status-text text-secondary fw-semibold">Checking...</small>
-            </div>
-        </div>
-    </aside> -->
-
-    <!-- Main Content -->
-    <main class="main-content flex-grow-1 p-4" style="margin-left:  0px;">
+   
+    <main class="main-content flex-grow-1 p-2" style="margin-left:  0px;">
         <div class="container-fluid h-100">
             {% block content %}{% endblock %}
         </div>

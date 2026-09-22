@@ -14,3 +14,8 @@ async def get_proofs(db: Session = Depends(get_db)):
 @router.post("/proofs", response_model=ProofResponse)
 async def create_proof(proof: ProofCreate, db: Session = Depends(get_db)):
     return proof_service.create_proof(db, proof)
+
+@router.delete("/proofs/{proof_id}")
+async def delete_proof(proof_id: int, db: Session = Depends(get_db)):
+    return proof_service.delete_proof(db, proof_id=proof_id)
+

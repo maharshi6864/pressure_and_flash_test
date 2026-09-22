@@ -44,6 +44,14 @@ async def get_proof(proof_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Proof not found")
     return proof
 
+@router.delete("/api/proofs/{proof_id}")
+async def delete_proof(proof_id: int, db: Session = Depends(get_db)):
+    try:
+        return proof_service.delete_proof(db, proof_id=proof_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete proof: {str(e)}")
+
+
 @router.get("/api/proofs/{proof_id}/tests", response_model=List[TestResponse])
 async def get_tests_for_proof(proof_id: int, db: Session = Depends(get_db)):
     return test_service.get_tests_for_proof(db, proof_id)

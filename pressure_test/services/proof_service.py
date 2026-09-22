@@ -175,5 +175,45 @@ class ProofService:
             db.rollback()
             raise e
 
+    def delete_proof(self, db: Session, proof_id: Optional[int] = None, lot_no: Optional[str] = None):
+        try:
+            proof = None
+            if proof_id is not None:
+                proof = db.query(Proof).filter(Proof.id == proof_id).first()
+            if not proof and lot_no is not None:
+                proof = db.query(Proof).filter(Proof.lot_no == lot_no).first()
+
+            if not proof:
+                return {
+                    "status": True,
+                    "deleted": False,
+                    "message": f"Proof not found (id={proof_id}, lot_no={lot_no})"
+                }
+
+            deleted_id = proof.id
+            deleted_lot = proof.lot_no
+
+            from repositories.current_objects import current_objects
+            if current_objects.current_proof_id == deleted_id:
+                current_objects.current_proof_id = None
+                current_objects.current_test_id = None
+                current_objects.reset()
+
+            db.delete(proof)
+            db.commit()
+
+            print(f"[SYNC] Deleted proof ID {deleted_id} (Lot {deleted_lot}) successfully.")
+            return {
+                "status": True,
+                "deleted": True,
+                "proof_id": deleted_id,
+                "lot_no": deleted_lot,
+                "message": f"Proof {deleted_id} deleted successfully"
+            }
+        except Exception as e:
+            db.rollback()
+            raise e
+
 
 proof_service = ProofService()
+

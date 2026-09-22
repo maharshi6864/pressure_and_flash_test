@@ -7,9 +7,6 @@
     <title>Log Sheet Print</title>
     <link rel="icon" type="image/png" href="/static/images/favicon-32x32_ver-1.1.png">
     <link rel="shortcut icon" href="/static/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         @page {
             size: A4 portrait;
@@ -33,7 +30,7 @@
         }
 
         .no-print-bar {
-            padding: 12px 20px;
+            padding: 10px 20px;
             background: #1e293b;
             color: #fff;
             display: flex;
@@ -41,11 +38,14 @@
             justify-content: space-between;
             box-shadow: 0 2px 10px rgba(0,0,0,0.15);
             font-family: 'Inter', sans-serif;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
         .no-print-bar button {
-            padding: 8px 20px;
-            font-size: 14px;
+            padding: 7px 18px;
+            font-size: 13.5px;
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -64,10 +64,42 @@
         .btn-close {
             background: #475569;
             color: #fff;
-            margin-left: 10px;
+            margin-left: 8px;
         }
         .btn-close:hover {
             background: #334155;
+        }
+
+        .generator-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .generator-input-wrap label {
+            font-size: 12px;
+            color: #cbd5e1;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .generator-input-wrap input {
+            background: #1e293b;
+            color: #fff;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            width: 170px;
+        }
+
+        .generator-input-wrap input:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
 
         .page-container {
@@ -209,6 +241,17 @@
             letter-spacing: 2px;
         }
 
+        .generated-info {
+            font-size: 12px;
+            line-height: 1.45;
+            color: #000;
+        }
+
+        .signature-block {
+            text-align: center;
+            min-width: 140px;
+        }
+
         .signature-text {
             font-size: 13.5px;
             font-weight: bold;
@@ -247,9 +290,11 @@
 <body>
 
     <div class="no-print-bar">
-        <div>
-            <strong id="barDocTitle" style="font-size: 16px;">Detonator Log Sheet</strong>
-            <span id="barLotNo" style="margin-left: 10px; opacity: 0.85; font-size: 13px;"></span>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div>
+                <strong id="barDocTitle" style="font-size: 15.5px;">Detonator Log Sheet</strong>
+                <span id="barLotNo" style="margin-left: 8px; opacity: 0.85; font-size: 13px;"></span>
+            </div>
         </div>
         <div>
             <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
@@ -264,467 +309,9 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const token = localStorage.getItem("token");
-            const proofId = parseInt("{{ proof_id }}", 10);
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-            try {
-                const res = await fetch(`/api/proofs/${proofId}`, { headers });
-                if (!res.ok) throw new Error(`Failed to load proof data (HTTP ${res.status})`);
-                const proof = await res.json();
-
-                renderLogSheet(proof);
-            } catch (err) {
-                console.error("Render Error:", err);
-                document.getElementById('printableArea').innerHTML = `
-                    <div style="padding: 30px; text-align: center; color: #b91c1c; font-family: 'Inter', sans-serif;">
-                        <h2>Error Loading Log Sheet</h2>
-                        <p style="margin-top: 10px;">${err.message}</p>
-                    </div>
-                `;
-            }
-        });
-
-        function formatDate(dStr) {
-            if (!dStr) return '';
-            const parts = dStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-            return dStr;
-        }
-
-        function calculatePressureMetrics(pressureTests, detType, sampleSize) {
-            if (detType === 'RGM') {
-                return null;
-            }
-
-            const constantVal = (detType === '135_LZY') ? 80.00 : 125.00;
-            let readings = [];
-            let validReadings = [];
-
-            if (pressureTests && pressureTests.length > 0) {
-                pressureTests.forEach(pt => {
-                    if (pt && pt.mpa != null && !isNaN(parseFloat(pt.mpa))) {
-                        const val = parseFloat(pt.mpa);
-                        readings.push(val);
-                        validReadings.push(val);
-                    }
-                });
-            }
-
-            // Target box count: at least 10, or total pressure tests / sampleSize
-            const targetLength = Math.max(readings.length, sampleSize || 0, 10);
-            while (readings.length < targetLength) {
-                readings.push(null);
-            }
-
-            let mean = null;
-            let md = null;
-            let eq1 = null;
-            let eq2 = null;
-
-            if (validReadings.length > 0) {
-                const sum = validReadings.reduce((a, b) => a + b, 0);
-                mean = sum / validReadings.length;
-                // Mean Deviation (Md): Average of absolute differences from the mean
-                md = validReadings.reduce((a, b) => a + Math.abs(b - mean), 0) / validReadings.length;
-
-                eq1 = (3.5 * md) + constantVal;
-                eq2 = (2.5 * md) + constantVal;
-            }
-
-            return { readings, validReadings, mean, md, eq1, eq2, constantVal };
-        }
-
-        function renderPressureObservationContent(metrics, userObs) {
-            if (!metrics) {
-                return userObs ? `<span>${userObs}</span>` : '';
-            }
-
-            const r = metrics.readings;
-            const validCount = metrics.validReadings.length;
-
-            // Build dynamic 5-column grid for readings
-            let gridRows = '';
-            const numRows = Math.ceil(r.length / 5);
-            for (let row = 0; row < numRows; row++) {
-                let rowCells = '';
-                for (let col = 0; col < 5; col++) {
-                    const idx = row * 5 + col;
-                    const val = idx < r.length && r[idx] !== null ? r[idx].toFixed(3) : '&nbsp;';
-                    rowCells += `<td style="border: 1px solid #000; text-align: center; padding: 3px 2px; font-weight: bold; width: 20%; font-size: 11.5px; height: 23px;">${val}</td>`;
-                }
-                gridRows += `<tr>${rowCells}</tr>`;
-            }
-
-            const gridHtml = `
-                <div style="margin-bottom: 5px;">
-                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 3px;">Pressure (in Mpa):</div>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
-                        <tbody>${gridRows}</tbody>
-                    </table>
-                </div>
-            `;
-
-            if (validCount === 0) {
-                return `
-                    ${gridHtml}
-                    ${userObs ? `<div style="margin-top: 4px;">${userObs}</div>` : ''}
-                `;
-            }
-
-            const mean = metrics.mean;
-            const md = metrics.md;
-            const eq1 = metrics.eq1;
-            const eq2 = metrics.eq2;
-            const constantVal = metrics.constantVal;
-
-            const isEq1 = Math.abs(mean - eq1) < 0.001;
-            const isMoreEq1 = mean > eq1;
-            const isBetween = (mean <= eq1 && mean >= eq2 && !isEq1);
-            const isLessEq2 = mean < eq2;
-
-            const allMoreCount = metrics.validReadings.filter(p => p >= constantVal).length;
-            const anyLessCount = metrics.validReadings.filter(p => p < constantVal).length;
-
-            const moreText = (allMoreCount === validCount && validCount > 0) ? 'All' : `${allMoreCount}`;
-            const lessText = (anyLessCount === 0) ? 'No' : `${anyLessCount}`;
-
-            return `
-                ${gridHtml}
-                <div style="font-size: 11.5px; line-height: 1.4; color: #000;">
-                    <table style="border: none; border-collapse: collapse; width: 100%; max-width: 260px; margin-bottom: 3px;">
-                        <tr>
-                            <td style="border: none; padding: 1px 0; font-weight: bold;">Mean Pressure:</td>
-                            <td style="border: none; padding: 1px 0; text-align: right; font-weight: bold; font-size: 12px;">${mean.toFixed(3)}</td>
-                        </tr>
-                        <tr>
-                            <td style="border: none; padding: 1px 0; font-weight: bold;">Md:</td>
-                            <td style="border: none; padding: 1px 0; text-align: right; font-weight: bold; font-size: 12px;">${md.toFixed(3)}</td>
-                        </tr>
-                        <tr>
-                            <td style="border: none; padding: 1px 0;">(I) 3.5XMd + ${constantVal.toFixed(2)} =</td>
-                            <td style="border: none; padding: 1px 0; text-align: right; font-weight: bold; font-size: 12px;">${eq1.toFixed(3)}</td>
-                        </tr>
-                        <tr>
-                            <td style="border: none; padding: 1px 0;">(II) 2.5XMd + ${constantVal.toFixed(2)} =</td>
-                            <td style="border: none; padding: 1px 0; text-align: right; font-weight: bold; font-size: 12px;">${eq2.toFixed(3)}</td>
-                        </tr>
-                    </table>
-
-                    <div style="font-weight: bold; margin-top: 3px; margin-bottom: 1px;">Mean Pressure is</div>
-                    <div style="padding-left: 4px; font-size: 11px;">
-                        <div style="${isEq1 ? 'font-weight: bold;' : ''}">${isEq1 ? '<span style="font-size: 12.5px; font-weight: 900;">&#10003;</span>' : '&bull;'} Equal to the figure of (I)</div>
-                        <div style="${isMoreEq1 ? 'font-weight: bold;' : ''}">${isMoreEq1 ? '<span style="font-size: 12.5px; font-weight: 900;">&#10003;</span>' : '&bull;'} More than the figure of (I)</div>
-                        <div style="${isBetween ? 'font-weight: bold;' : ''}">${isBetween ? '<span style="font-size: 12.5px; font-weight: 900;">&#10003;</span>' : '&bull;'} Between the figure of (I) &amp; (II)</div>
-                        <div style="${isLessEq2 ? 'font-weight: bold;' : ''}">${isLessEq2 ? '<span style="font-size: 12.5px; font-weight: 900;">&#10003;</span>' : '&bull;'} Less than the figure of (II)</div>
-                    </div>
-
-                    <div style="padding-left: 4px; margin-top: 3px; font-size: 11px;">
-                        <div>&bull; -- <strong>${moreText}</strong> -- Detonators shown Pressure equal/more than the minimum specified pressure.</div>
-                        <div>&bull; -- <strong>${lessText}</strong> -- Detonators shown Pressure less than the minimum specified Pressure.</div>
-                    </div>
-
-                    ${userObs ? `<div style="margin-top: 3px; font-style: italic;">${userObs}</div>` : ''}
-                </div>
-            `;
-        }
-
-        function renderLogSheet(proof) {
-            const detType = proof.detonator_type || '356_LZ';
-            const lotNo = proof.lot_no || '';
-            const sampleReceivedOn = formatDate(proof.sample_received_on);
-            const sampleSize = proof.sample_size ? `${proof.sample_size} Nos.` : '';
-            const proofResults = proof.proof_results || '';
-            const scheduleRef = proof.schedule_ref || 'CQA/Proof Schedule/Det/1/11';
-            const sampleSizeNum = proof.pressure_test_sample_size || proof.sample_size || 10;
-            const pressureMetrics = calculatePressureMetrics(proof.pressure_tests || [], detType, sampleSizeNum);
-
-            // Auto-compute flash observation if empty and tests are recorded
-            let flashObs = proof.flash_test_obs || '';
-            if (!flashObs && proof.flash_tests && proof.flash_tests.length > 0) {
-                const allSat = proof.flash_tests.every(t => t.flash_detected === true);
-                const anyFail = proof.flash_tests.some(t => t.flash_detected === false);
-                if (allSat) flashObs = 'All 10 samples satisfactory (Flash detected)';
-                else if (anyFail) {
-                    const failCount = proof.flash_tests.filter(t => t.flash_detected === false).length;
-                    flashObs = `${failCount} sample(s) failed`;
-                }
-            }
-
-            // Update top bar text
-            document.getElementById('barLotNo').innerText = `| Lot No: ${lotNo}`;
-            let html = '';
-
-            if (detType === '356_LZ') {
-                document.getElementById('barDocTitle').innerText = 'Log Sheet for Detonator 356 mg LZ';
-                html = `
-                    <div class="header-title-1">ORDNANCE FACTORY BADMAL</div>
-                    <div class="header-title-2">SECTION: QC(PROOF RANGE)</div>
-                    <div class="header-title-3">Log Sheet for Detonator 356 mg LZ</div>
-                    <div class="header-title-ref"><u>(Proof Schedule/Test Programme Ref: ${scheduleRef})</u></div>
-                    <div class="format-badge"><u>FORMAT</u></div>
-
-                    <div class="meta-list">
-                        <div class="meta-row">
-                            <span class="meta-num">1.</span>
-                            <span class="meta-label">Lot No</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${lotNo}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">2.</span>
-                            <span class="meta-label">Sample Received on</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleReceivedOn}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">3.</span>
-                            <span class="meta-label">Sample Size</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleSize}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">4.</span>
-                            <span class="meta-label">Proof Results</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${proofResults}</span>
-                        </div>
-                    </div>
-
-                    <div class="results-heading">RESULTS</div>
-
-                    <table class="proof-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 6%;">Sl.No.</th>
-                                <th style="width: 22%;">Type of proof</th>
-                                <th style="width: 13%;">Sample size</th>
-                                <th style="width: 13%;">Date of proof</th>
-                                <th style="width: 34%;">Observation</th>
-                                <th style="width: 12%;">Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>01.</td>
-                                <td>Drop Test</td>
-                                <td>: ${proof.drop_test_sample_size != null ? proof.drop_test_sample_size + ' Nos.' : '20 Nos.'}</td>
-                                <td>${formatDate(proof.drop_test_date)}</td>
-                                <td>${proof.drop_test_obs || 'All Samples Sustained.'}</td>
-                                <td>${proof.drop_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>02.</td>
-                                <td>Sensitivity Test</td>
-                                <td>: ${proof.sensitivity_test_sample_size != null ? proof.sensitivity_test_sample_size + ' Nos.' : '10 Nos.'}</td>
-                                <td>${formatDate(proof.sensitivity_test_date)}</td>
-                                <td>${proof.sensitivity_test_obs || 'All Samples Functioned.'}</td>
-                                <td>${proof.sensitivity_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>03.</td>
-                                <td>Flash Delivery Test</td>
-                                <td>: ${proof.flash_test_sample_size != null ? proof.flash_test_sample_size + ' Nos.' : '10 Nos.'}</td>
-                                <td>${formatDate(proof.flash_test_date)}</td>
-                                <td>${proof.flash_test_obs || flashObs || 'Satisfactory.'}</td>
-                                <td>${proof.flash_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>04.</td>
-                                <td>
-                                    Pressure Bar Test
-                                    <div style="font-size: 10.5px; font-weight: normal; margin-top: 2px;">(Minimum specified pressure for individual Detonator is 125.00 Mpa)</div>
-                                </td>
-                                <td>: ${proof.pressure_test_sample_size != null ? proof.pressure_test_sample_size + ' Nos.' : '10 Nos.'}</td>
-                                <td>${formatDate(proof.pressure_test_date)}</td>
-                                <td>${renderPressureObservationContent(pressureMetrics, proof.pressure_test_obs)}</td>
-                                <td>${proof.pressure_test_remarks || ''}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="footer-block">
-                        <div></div>
-                        <div class="signature-text">I/C Proof</div>
-                    </div>
-                `;
-            } else if (detType === '135_LZY') {
-                document.getElementById('barDocTitle').innerText = 'Log Sheet for Detonator 135 mg LZY';
-                const serialNumber = proof.id ? (2715000 + proof.id) : '2715785';
-                html = `
-                    <div class="header-title-1">ORDNANCE FACTORY BADMAL</div>
-                    <div class="header-title-2">SECTION: QC(PROOF RANGE)</div>
-                    <div class="header-title-3">Log Sheet for Detonator 135 mg LZY</div>
-                    <div class="format-badge"><u>FORMAT</u></div>
-
-                    <div class="meta-list">
-                        <div class="meta-row">
-                            <span class="meta-num">1.</span>
-                            <span class="meta-label">Lot No.</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${lotNo}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">2.</span>
-                            <span class="meta-label">Sample Received on</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleReceivedOn}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">3.</span>
-                            <span class="meta-label">Sample Size</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleSize}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">4.</span>
-                            <span class="meta-label">Proof Results</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${proofResults}</span>
-                        </div>
-                    </div>
-
-                    <div class="results-heading">RESULTS</div>
-
-                    <table class="proof-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 6%;">Sl.No.</th>
-                                <th style="width: 22%;">Type of proof</th>
-                                <th style="width: 13%;">Sample size</th>
-                                <th style="width: 13%;">Date of proof</th>
-                                <th style="width: 34%;">Observation</th>
-                                <th style="width: 12%;">Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>01.</td>
-                                <td>Drop Test</td>
-                                <td>: ${proof.drop_test_sample_size != null ? proof.drop_test_sample_size + ' Nos.' : '20 Nos.'}</td>
-                                <td>${formatDate(proof.drop_test_date)}</td>
-                                <td>${proof.drop_test_obs || 'All Samples Sustained.'}</td>
-                                <td>${proof.drop_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>02.</td>
-                                <td>Sensitivity Test</td>
-                                <td>: ${proof.sensitivity_test_sample_size != null ? proof.sensitivity_test_sample_size + ' Nos.' : '13 Nos.'}</td>
-                                <td>${formatDate(proof.sensitivity_test_date)}</td>
-                                <td>${proof.sensitivity_test_obs || 'All Samples Functioned.'}</td>
-                                <td>${proof.sensitivity_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>03.</td>
-                                <td>
-                                    Pressure Bar Test
-                                    <div style="font-size: 10.5px; font-weight: normal; margin-top: 2px;">(Minimum specified pressure for individual Detonator is 80.00 Mpa)</div>
-                                </td>
-                                <td>: ${proof.pressure_test_sample_size != null ? proof.pressure_test_sample_size + ' Nos.' : '13 Nos.'}</td>
-                                <td>${formatDate(proof.pressure_test_date)}</td>
-                                <td>${renderPressureObservationContent(pressureMetrics, proof.pressure_test_obs)}</td>
-                                <td>${proof.pressure_test_remarks || ''}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="footer-block">
-                        <div class="serial-no">${serialNumber}</div>
-                        <div class="signature-text">I/C Proof</div>
-                    </div>
-                `;
-            } else if (detType === 'RGM') {
-                document.getElementById('barDocTitle').innerText = 'Log Sheet for Detonator RGM';
-                html = `
-                    <div class="header-title-1">ORDNANCE FACTORY BADMAL</div>
-                    <div class="header-title-2">SECTION: QC(PROOF RANGE)</div>
-                    <div class="header-title-3">Log Sheet for Detonator RGM</div>
-                    <div class="format-badge"><u>FORMAT</u></div>
-
-                    <div class="meta-list">
-                        <div class="meta-row">
-                            <span class="meta-num">1.</span>
-                            <span class="meta-label">Lot No.</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${lotNo}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">2.</span>
-                            <span class="meta-label">Sample Received on</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleReceivedOn}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">3.</span>
-                            <span class="meta-label">Sample Size</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${sampleSize}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-num">4.</span>
-                            <span class="meta-label">Proof Results</span>
-                            <span class="meta-colon">:</span>
-                            <span class="meta-val">${proofResults}</span>
-                        </div>
-                    </div>
-
-                    <div class="results-heading">RESULTS</div>
-
-                    <table class="proof-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 32%;">Type of proof</th>
-                                <th style="width: 16%;">Date of proof</th>
-                                <th style="width: 15%;">Sample size</th>
-                                <th style="width: 22%;">Observation</th>
-                                <th style="width: 15%;">Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>1. Sensitivity Test at upper limit :</td>
-                                <td>${formatDate(proof.sens_upper_date)}</td>
-                                <td>: ${proof.sens_upper_sample_size != null ? proof.sens_upper_sample_size + ' Nos.' : ''}</td>
-                                <td>${proof.sens_upper_obs || 'Satisfactory.'}</td>
-                                <td>${proof.sens_upper_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>2. Sensitivity Test at lower limit :</td>
-                                <td>${formatDate(proof.sens_lower_date)}</td>
-                                <td>: ${proof.sens_lower_sample_size != null ? proof.sens_lower_sample_size + ' Nos.' : ''}</td>
-                                <td>${proof.sens_lower_obs || 'Satisfactory.'}</td>
-                                <td>${proof.sens_lower_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>3. Drop Test :</td>
-                                <td>${formatDate(proof.drop_test_date)}</td>
-                                <td>: ${proof.drop_test_sample_size != null ? proof.drop_test_sample_size + ' Nos.' : ''}</td>
-                                <td>${proof.drop_test_obs || 'All Samples Sustained.'}</td>
-                                <td>${proof.drop_test_remarks || ''}</td>
-                            </tr>
-                            <tr>
-                                <td>4. Pressure Bar Test :</td>
-                                <td>${formatDate(proof.pressure_test_date)}</td>
-                                <td>: ${proof.pressure_test_sample_size != null ? proof.pressure_test_sample_size + ' Nos.' : ''}</td>
-                                <td>${proof.pressure_test_obs || ''}</td>
-                                <td>${proof.pressure_test_remarks || ''}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="footer-block">
-                        <div></div>
-                        <div class="signature-text">I/C Proof</div>
-                    </div>
-                `;
-            }
-
-            document.getElementById('printableArea').innerHTML = html;
-        }
+        window.PROOF_ID = parseInt("{{ proof_id }}", 10);
     </script>
+    <script src="/static/js/proof_slip_print.js"></script>
 </body>
 
 </html>

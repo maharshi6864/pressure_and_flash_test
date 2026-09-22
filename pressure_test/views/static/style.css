@@ -1,7 +1,5 @@
 /* Custom styles overriding Bootstrap if necessary */
 
-/* The sidebar is handled via inline styles in base.html */
-
 .spin {
     animation: spin 1s linear infinite;
 }
@@ -14,3 +12,33 @@
         transform: rotate(360deg);
     }
 }
+
+/* Test Cards Grid Styles */
+.test-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    user-select: none;
+}
+
+.test-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.test-card.active {
+    border-color: #0d6efd !important;
+    background-color: #f0f7ff !important;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25) !important;
+}
+
+.test-card.passed {
+    border-left: 4px solid #198754;
+}
+
+.test-card.pending {
+    border-left: 4px solid #adb5bd;
+}
+

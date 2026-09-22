@@ -182,21 +182,20 @@ class DetectFlashService:
             return frame
         flash_detected, display_frame = self.__detect_flash__(frame)
         
-        if not CurrentObjects.ready_status:
-            return display_frame
-
-        # Store most recent frames for manual end
+        # Store most recent frames for manual save or end test
         CurrentObjects.latest_frame = frame
         CurrentObjects.latest_display_frame = display_frame
+
+        if not CurrentObjects.ready_status:
+            return display_frame
 
         if flash_detected and CurrentObjects.current_test_id is not None:
             CurrentObjects.flash_detection_image = display_frame
             CurrentObjects.flash_image = display_frame
             CurrentObjects.flash_detection = True
             CurrentObjects.flash_detected_time = datetime.now()
-            db = SessionLocal()
-
 
         return display_frame
+
 
 detect_flash_service = DetectFlashService()

@@ -13,4 +13,41 @@
     display: inline-block;
 }
 
-/* The sidebar is handled via inline styles in base.html */
+/* Test Card Styles */
+.test-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0.5rem;
+    position: relative;
+    user-select: none;
+    border: 2px solid transparent;
+    background-color: #ffffff;
+}
+
+.test-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.test-card.active {
+    border-color: #0d6efd !important;
+    background-color: #f0f7ff !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25), 0 4px 12px rgba(13, 110, 253, 0.15) !important;
+    transform: translateY(-2px);
+}
+
+.test-card.passed {
+    border-color: #198754;
+    background-color: #f6fbf8;
+}
+
+.test-card.failed {
+    border-color: #dc3545;
+    background-color: #fdf6f6;
+}
+
+.test-card.pending {
+    border-color: #dee2e6;
+    background-color: #ffffff;
+}
+

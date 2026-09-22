@@ -19,9 +19,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Flash Test Detection And Reporting Application",lifespan=lifespan)
 
-# Create database tables
+import os
 
+# Create database tables
+os.makedirs("saved_images", exist_ok=True)
 app.mount("/static", StaticFiles(directory="views/static"), name="static")
+app.mount("/saved_images", StaticFiles(directory="saved_images"), name="saved_images")
+
 
 app.include_router(page_router)
 app.include_router(proofs_router)

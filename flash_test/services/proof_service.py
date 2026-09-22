@@ -1,8 +1,12 @@
 from typing import Union, List, Optional
 from datetime import date as dt_date, datetime as dt_datetime
+import os
+import shutil
 from sqlalchemy.orm import Session
 from models.db_models import Proof, Test
 from models.schemas import ProofCreate, SyncFlashRequest
+from core.config import settings
+from repositories.current_objects import CurrentObjects
 
 
 class ProofService:
@@ -164,5 +168,72 @@ class ProofService:
             db.rollback()
             raise e
 
+    def delete_proof(self, db: Session, proof_id: Optional[int] = None, lot_no: Optional[str] = None):
+        try:
+            proof = None
+            if proof_id is not None:
+                proof = db.query(Proof).filter(Proof.id == proof_id).first()
+            if not proof and lot_no:
+                proof = db.query(Proof).filter(Proof.lot_no == lot_no).first()
+
+            if not proof:
+                return {
+                    "status": True,
+                    "message": f"Proof (id: {proof_id}, lot_no: {lot_no}) not found or already deleted",
+                    "deleted": False,
+                    "proof_id": proof_id,
+                    "lot_no": lot_no
+                }
+
+            target_id = proof.id
+            target_lot = proof.lot_no
+
+            # 1. Reset CurrentObjects if current active test belongs to this proof
+            tests = db.query(Test).filter(Test.proof_id == target_id).all()
+            test_ids = [t.id for t in tests]
+            if CurrentObjects.current_test_id in test_ids:
+                CurrentObjects.current_test_id = None
+                CurrentObjects.flash_detection_image = None
+                CurrentObjects.flash_image = None
+                CurrentObjects.flash_detection = False
+                CurrentObjects.flash_detected_time = None
+
+            # 2. Clean up individual saved test image files if any
+            for t in tests:
+                if t.flash_detected_image_path and os.path.exists(t.flash_detected_image_path):
+                    try:
+                        os.remove(t.flash_detected_image_path)
+                    except Exception as img_err:
+                        print(f"[DELETE] Error removing test image {t.flash_detected_image_path}: {img_err}")
+
+            # 3. Clean up the lot-specific folder under settings.FLASH_IMAGES_DIR if exists
+            raw_lot = target_lot if target_lot else f"proof_{target_id}"
+            lot_name = "".join(c for c in raw_lot if c.isalnum() or c in ('-', '_')).strip() or f"proof_{target_id}"
+            folder = os.path.join(settings.FLASH_IMAGES_DIR, lot_name)
+            if os.path.exists(folder) and os.path.isdir(folder):
+                try:
+                    shutil.rmtree(folder)
+                    print(f"[DELETE] Removed flash image folder: {folder}")
+                except Exception as dir_err:
+                    print(f"[DELETE] Error removing folder {folder}: {dir_err}")
+
+            # 4. Delete the proof from DB (cascades to tests)
+            db.delete(proof)
+            db.commit()
+
+            print(f"[DELETE] Successfully deleted proof {target_id} ({target_lot}) and its associated tests/images.")
+            return {
+                "status": True,
+                "message": f"Proof {target_id} ({target_lot}) deleted successfully",
+                "deleted": True,
+                "proof_id": target_id,
+                "lot_no": target_lot
+            }
+        except Exception as e:
+            db.rollback()
+            print(f"[DELETE] Error deleting proof: {e}")
+            raise e
+
 
 proof_service = ProofService()
+

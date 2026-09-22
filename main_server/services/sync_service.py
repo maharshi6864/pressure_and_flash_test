@@ -300,4 +300,72 @@ class SyncService:
                 print(f"[SYNC] Periodic sync worker iteration notice: {e}")
 
 
+    async def delete_proof_from_nodes(self, proof_id: int, lot_no: str = None):
+        """Notify child nodes (Pressure & Flash servers) to delete the proof and all associated tests."""
+        pressure_deleted = False
+        flash_deleted = False
+
+        async with httpx.AsyncClient(timeout=5.0) as async_client:
+            # 1. Notify Pressure Test Server
+            for url in self._get_target_urls(Settings.pressure_test_server_url):
+                try:
+                    # Attempt DELETE endpoint first
+                    res = await async_client.delete(
+                        f'{url}/sync/proof/{proof_id}',
+                        params={"token": Settings.SYNC_API_TOKEN}
+                    )
+                    if 200 <= res.status_code < 300:
+                        pressure_deleted = True
+                        print(f"[SYNC] Pressure server at {url} deleted proof {proof_id}")
+                        break
+                    elif res.status_code in [404, 405]:
+                        # Fallback to POST delete_proof
+                        res2 = await async_client.post(
+                            f'{url}/sync/delete_proof',
+                            params={"token": Settings.SYNC_API_TOKEN},
+                            json={"proof_id": proof_id, "lot_no": lot_no}
+                        )
+                        if 200 <= res2.status_code < 300:
+                            pressure_deleted = True
+                            print(f"[SYNC] Pressure server at {url} acknowledged delete_proof for {proof_id}")
+                            break
+                    else:
+                        print(f"[SYNC] Pressure server at {url} delete response status {res.status_code}: {res.text}")
+                except Exception as e:
+                    print(f"[SYNC] Error notifying Pressure server at {url} to delete proof {proof_id}: {e}")
+
+            # 2. Notify Flash Test Server
+            for url in self._get_target_urls(Settings.flash_test_server_url):
+                try:
+                    # Attempt DELETE endpoint first
+                    res = await async_client.delete(
+                        f'{url}/sync/proof/{proof_id}',
+                        params={"token": Settings.SYNC_API_TOKEN}
+                    )
+                    if 200 <= res.status_code < 300:
+                        flash_deleted = True
+                        print(f"[SYNC] Flash server at {url} deleted proof {proof_id}")
+                        break
+                    elif res.status_code in [404, 405]:
+                        # Fallback to POST delete_proof
+                        res2 = await async_client.post(
+                            f'{url}/sync/delete_proof',
+                            params={"token": Settings.SYNC_API_TOKEN},
+                            json={"proof_id": proof_id, "lot_no": lot_no}
+                        )
+                        if 200 <= res2.status_code < 300:
+                            flash_deleted = True
+                            print(f"[SYNC] Flash server at {url} acknowledged delete_proof for {proof_id}")
+                            break
+                    else:
+                        print(f"[SYNC] Flash server at {url} delete response status {res.status_code}: {res.text}")
+                except Exception as e:
+                    print(f"[SYNC] Error notifying Flash server at {url} to delete proof {proof_id}: {e}")
+
+        return {
+            "pressure_notified": pressure_deleted,
+            "flash_notified": flash_deleted
+        }
+
+
 sync_service = SyncService()

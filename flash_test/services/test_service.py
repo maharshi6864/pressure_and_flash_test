@@ -35,12 +35,12 @@ class TestService:
         test.flash_detected = CurrentObjects.flash_detection
         test.flash_detected_time = CurrentObjects.flash_detected_time or datetime.now()
 
-        # Save image of detected flash to folder with timestamp
+        # Save image of test (flash image or latest frame for no flash)
         image_to_save = CurrentObjects.flash_image
-        if image_to_save is None and test.flash_detected:
-            image_to_save = CurrentObjects.latest_display_frame or CurrentObjects.latest_frame
+        if image_to_save is None:
+            image_to_save = CurrentObjects.latest_display_frame if CurrentObjects.latest_display_frame is not None else CurrentObjects.latest_frame
 
-        if test.flash_detected and image_to_save is not None:
+        if image_to_save is not None:
             proof = db.query(Proof).filter(Proof.id == test.proof_id).first()
             raw_lot = proof.lot_no if proof and proof.lot_no else f"proof_{test.proof_id}"
             lot_name = "".join(c for c in raw_lot if c.isalnum() or c in ('-', '_')).strip() or f"proof_{test.proof_id}"
@@ -57,10 +57,10 @@ class TestService:
             try:
                 cv2.imwrite(file_path, image_to_save)
                 test.flash_detected_image_path = file_path
-                print(f"[IMAGE] Flash detection image saved: {file_path}")
+                print(f"[IMAGE] Test image saved: {file_path}")
             except Exception as e:
-                print(f"[IMAGE] Error saving flash image: {e}")
-        elif not test.flash_detected:
+                print(f"[IMAGE] Error saving test image: {e}")
+        else:
             test.flash_detected_image_path = None
 
         self.reset_test_info()
@@ -87,7 +87,30 @@ class TestService:
         # Update test in database
         test.flash_detected = False
         test.flash_detected_time = datetime.now()
-        test.flash_detected_image_path = None
+
+        image_to_save = CurrentObjects.latest_display_frame if CurrentObjects.latest_display_frame is not None else CurrentObjects.latest_frame
+        if image_to_save is not None:
+            proof = db.query(Proof).filter(Proof.id == test.proof_id).first()
+            raw_lot = proof.lot_no if proof and proof.lot_no else f"proof_{test.proof_id}"
+            lot_name = "".join(c for c in raw_lot if c.isalnum() or c in ('-', '_')).strip() or f"proof_{test.proof_id}"
+            
+            dt = test.flash_detected_time or datetime.now()
+            ts_str = dt.strftime("%Y%m%d_%H%M%S")
+            
+            folder = os.path.join(settings.FLASH_IMAGES_DIR, lot_name)
+            os.makedirs(folder, exist_ok=True)
+            
+            filename = f"test_{test.test_number}_{ts_str}.jpg"
+            file_path = os.path.join(folder, filename)
+            
+            try:
+                cv2.imwrite(file_path, image_to_save)
+                test.flash_detected_image_path = file_path
+                print(f"[IMAGE] Manual end test image saved: {file_path}")
+            except Exception as e:
+                print(f"[IMAGE] Error saving test image: {e}")
+        else:
+            test.flash_detected_image_path = None
 
         self.reset_test_info()
 
@@ -104,6 +127,7 @@ class TestService:
         db.refresh(test)
 
         return test
+
 
 
 test_service = TestService()
