@@ -10,4 +10,5 @@ saved_images
 test_videos
 uploads
 *.db
-
+.DS_Store
+*.npz
